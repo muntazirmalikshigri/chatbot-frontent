@@ -25,7 +25,11 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await api.login(email.trim(), password);
+      const result = await api.login(email.trim(), password);
+      // ✅ Yeh 2 lines add karo
+      localStorage.setItem('accessToken', (result as any).accessToken)
+      localStorage.setItem('refreshToken', (result as any).refreshToken)
+      
       const companies = await api.getCompanies().catch(() => []);
       router.replace(companies.length ? "/dashboard" : "/dashboard/company/create");
     } catch (err) {
@@ -34,7 +38,6 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
   return (
     <AuthShell>
       <Card
