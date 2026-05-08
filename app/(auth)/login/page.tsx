@@ -202,7 +202,8 @@ export default function LoginPage() {
         list = [];
       }
 
-      router.replace(list.length > 0 ? "/dashboard" : "/dashboard/company/create");
+     // router.replace ki jagah yeh use karo
+window.location.href = list.length > 0 ? "/dashboard" : "/dashboard/company/create";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
