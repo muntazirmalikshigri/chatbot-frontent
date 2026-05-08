@@ -1,5 +1,4 @@
 
-
 // import type {
 //   Agent,
 //   ApiEnvelope,
@@ -18,9 +17,10 @@
 // };
 
 // async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-//   const token = typeof window !== 'undefined'
-//     ? localStorage.getItem('accessToken')
-//     : null
+//   // Token localStorage se lo — cross-domain cookie ki jagah
+//   const token = typeof window !== "undefined"
+//     ? localStorage.getItem("accessToken")
+//     : null;
 
 //   const response = await fetch(`${API_BASE_URL}${path}`, {
 //     credentials: "include",
@@ -45,12 +45,20 @@
 
 //   return (payload?.data ?? null) as T;
 // }
+
 // export const api = {
-//   login: (email: string, password: string) =>
-//     request<User>("/login", {
+//   login: async (email: string, password: string) => {
+//     const data = await request<any>("/login", {
 //       method: "POST",
 //       body: JSON.stringify({ email, password }),
-//     }),
+//     });
+//     // Tokens localStorage mein save karo
+//     if (typeof window !== "undefined") {
+//       if (data?.accessToken) localStorage.setItem("accessToken", data.accessToken);
+//       if (data?.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
+//     }
+//     return data as User;
+//   },
 
 //   register: (payload: {
 //     name: string;
@@ -80,12 +88,19 @@
 //     }),
 
 //   deleteCompany: (companyId: string) =>
-//     request<null>(`/companies/${companyId}`, { method: "DELETE" }),
+//     request<null>(`/companies/${companyId}`, {
+//       method: "DELETE",
+//     }),
 
 //   getAgentsByCompany: (companyId: string) =>
 //     request<Agent[]>(`/companies/${companyId}/agents`),
 
 //   getAgent: (agentId: string) => request<Agent>(`/agents/${agentId}`),
+
+//   getWhatsAppQR: (companyId: string) =>
+//   request<{ qr: string | null; status: string }>(
+//     `/whatsapp/${companyId}/qr`
+//   ),
 
 //   createAgent: (
 //     companyId: string,
@@ -106,7 +121,9 @@
 //     }),
 
 //   deleteAgent: (agentId: string) =>
-//     request<null>(`/agents/${agentId}`, { method: "DELETE" }),
+//     request<null>(`/agents/${agentId}`, {
+//       method: "DELETE",
+//     }),
 
 //   getKnowledge: (agentId: string) =>
 //     request<KnowledgeChunk[]>(`/agents/${agentId}/knowledge`),
@@ -118,6 +135,7 @@
 //     }),
 
 //   uploadKnowledgePdf: async (agentId: string, file: File, sourceName?: string) => {
+//     const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 //     const response = await fetch(
 //       `${API_BASE_URL}/agents/${agentId}/knowledge/pdf${
 //         sourceName ? `?sourceName=${encodeURIComponent(sourceName)}` : ""
@@ -126,13 +144,20 @@
 //         method: "POST",
 //         credentials: "include",
 //         body: file,
-//         headers: { "Content-Type": file.type || "application/pdf" },
+//         headers: {
+//           "Content-Type": file.type || "application/pdf",
+//           ...(token ? { Authorization: `Bearer ${token}` } : {}),
+//         },
 //       }
 //     );
 //     const payload = (await response.json().catch(() => null)) as
 //       | ApiEnvelope<{ chunksCreated: number; sourceType: string }>
 //       | null;
-//     if (!response.ok) throw new Error(payload?.message ?? "PDF upload failed");
+
+//     if (!response.ok) {
+//       throw new Error(payload?.message ?? "PDF upload failed");
+//     }
+
 //     return payload?.data ?? { chunksCreated: 0, sourceType: "pdf" };
 //   },
 
@@ -155,46 +180,22 @@
 
 //   // ─── WhatsApp (Baileys) ───────────────────────────────────────────
 
-//   // Start WhatsApp connection — backend generates QR
 //   connectWhatsApp: (companyId: string) =>
-//     request<{ status: string; companyId: string }>(
+//     request<{ isConnected: boolean; qr: string | null }>(
 //       `/whatsapp/${companyId}/connect`,
 //       { method: "POST" }
 //     ),
 
-//   // Poll QR code every 3 seconds until connected
-//   // getWhatsAppQR: (companyId: string) =>
-//   //   request<{ qr: string | null; status: string }>(
-//   //     `/whatsapp/${companyId}/qr`
-//   //   ),
-//   getWhatsAppQR: async (companyId: string) => {
-//   const response = await fetch(`${API_BASE_URL}/whatsapp/${companyId}/qr`, {
-//     method: "GET",
-//     credentials: "include",
-//     cache: "no-store",
-//   });
+//   disconnectWhatsApp: (companyId: string) =>
+//     request<null>(`/whatsapp/${companyId}/disconnect`, { method: "POST" }),
 
-//   const payload = await response.json();
-
-//   if (!response.ok) {
-//     throw new Error(payload?.message ?? "Failed to fetch QR");
-//   }
-
-//   return payload.data as { qr: string | null; status: string };
-// },
-
-//   // Get full connection status
 //   getWhatsAppStatus: (companyId: string) =>
 //     request<{
-//       status: 'connecting' | 'connected' | 'disconnected';
+//       configured: boolean;
+//       isActive: boolean;
 //       isConnected: boolean;
-//       phoneNumber: string | null;
-//       connectedAt: string | null;
+//       hasPendingQR: boolean;
 //     }>(`/whatsapp/${companyId}/status`),
-
-//   // Disconnect WhatsApp
-//   disconnectWhatsApp: (companyId: string) =>
-//     request<null>(`/whatsapp/${companyId}/disconnect`, { method: "DELETE" }),
 
 //   // ─────────────────────────────────────────────────────────────────
 
@@ -202,7 +203,12 @@
 //     try {
 //       await request<{ success: boolean }>("/logout", { method: "PUT" });
 //     } catch {
-//       // Ignore errors — logout should proceed even if backend call fails
+//       // Ignore errors
+//     } finally {
+//       if (typeof window !== "undefined") {
+//         localStorage.removeItem("accessToken");
+//         localStorage.removeItem("refreshToken");
+//       }
 //     }
 //   },
 // };
@@ -212,7 +218,6 @@
 //   chatSession: (agentId: string) => `mta-chat-session-${agentId}`,
 //   chatMessages: (agentId: string) => `mta-chat-messages-${agentId}`,
 // };
-
 
 
 
@@ -235,18 +240,12 @@ type RequestOptions = RequestInit & {
 };
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  // Token localStorage se lo — cross-domain cookie ki jagah
-  const token = typeof window !== "undefined"
-    ? localStorage.getItem("accessToken")
-    : null;
-
   const response = await fetch(`${API_BASE_URL}${path}`, {
     credentials: "include",
     cache: "no-store",
     ...options,
     headers: {
       ...(options.headers ?? {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.body && !("Content-Type" in (options.headers ?? {}))
         ? { "Content-Type": "application/json" }
         : {}),
@@ -265,18 +264,11 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const api = {
-  login: async (email: string, password: string) => {
-    const data = await request<any>("/login", {
+  login: (email: string, password: string) =>
+    request<User>("/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
-    });
-    // Tokens localStorage mein save karo
-    if (typeof window !== "undefined") {
-      if (data?.accessToken) localStorage.setItem("accessToken", data.accessToken);
-      if (data?.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
-    }
-    return data as User;
-  },
+    }),
 
   register: (payload: {
     name: string;
@@ -306,9 +298,7 @@ export const api = {
     }),
 
   deleteCompany: (companyId: string) =>
-    request<null>(`/companies/${companyId}`, {
-      method: "DELETE",
-    }),
+    request<null>(`/companies/${companyId}`, { method: "DELETE" }),
 
   getAgentsByCompany: (companyId: string) =>
     request<Agent[]>(`/companies/${companyId}/agents`),
@@ -334,9 +324,7 @@ export const api = {
     }),
 
   deleteAgent: (agentId: string) =>
-    request<null>(`/agents/${agentId}`, {
-      method: "DELETE",
-    }),
+    request<null>(`/agents/${agentId}`, { method: "DELETE" }),
 
   getKnowledge: (agentId: string) =>
     request<KnowledgeChunk[]>(`/agents/${agentId}/knowledge`),
@@ -348,7 +336,6 @@ export const api = {
     }),
 
   uploadKnowledgePdf: async (agentId: string, file: File, sourceName?: string) => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
     const response = await fetch(
       `${API_BASE_URL}/agents/${agentId}/knowledge/pdf${
         sourceName ? `?sourceName=${encodeURIComponent(sourceName)}` : ""
@@ -357,20 +344,13 @@ export const api = {
         method: "POST",
         credentials: "include",
         body: file,
-        headers: {
-          "Content-Type": file.type || "application/pdf",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { "Content-Type": file.type || "application/pdf" },
       }
     );
     const payload = (await response.json().catch(() => null)) as
       | ApiEnvelope<{ chunksCreated: number; sourceType: string }>
       | null;
-
-    if (!response.ok) {
-      throw new Error(payload?.message ?? "PDF upload failed");
-    }
-
+    if (!response.ok) throw new Error(payload?.message ?? "PDF upload failed");
     return payload?.data ?? { chunksCreated: 0, sourceType: "pdf" };
   },
 
@@ -393,22 +373,31 @@ export const api = {
 
   // ─── WhatsApp (Baileys) ───────────────────────────────────────────
 
+  // Start WhatsApp connection — backend generates QR
   connectWhatsApp: (companyId: string) =>
-    request<{ isConnected: boolean; qr: string | null }>(
+    request<{ status: string; companyId: string }>(
       `/whatsapp/${companyId}/connect`,
       { method: "POST" }
     ),
 
-  disconnectWhatsApp: (companyId: string) =>
-    request<null>(`/whatsapp/${companyId}/disconnect`, { method: "POST" }),
+  // Poll QR code every 3 seconds until connected
+  getWhatsAppQR: (companyId: string) =>
+    request<{ qr: string | null; status: string }>(
+      `/whatsapp/${companyId}/qr`
+    ),
 
+  // Get full connection status
   getWhatsAppStatus: (companyId: string) =>
     request<{
-      configured: boolean;
-      isActive: boolean;
+      status: 'connecting' | 'connected' | 'disconnected';
       isConnected: boolean;
-      hasPendingQR: boolean;
+      phoneNumber: string | null;
+      connectedAt: string | null;
     }>(`/whatsapp/${companyId}/status`),
+
+  // Disconnect WhatsApp
+  disconnectWhatsApp: (companyId: string) =>
+    request<null>(`/whatsapp/${companyId}/disconnect`, { method: "DELETE" }),
 
   // ─────────────────────────────────────────────────────────────────
 
@@ -416,12 +405,7 @@ export const api = {
     try {
       await request<{ success: boolean }>("/logout", { method: "PUT" });
     } catch {
-      // Ignore errors
-    } finally {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-      }
+      // Ignore errors — logout should proceed even if backend call fails
     }
   },
 };
@@ -431,3 +415,5 @@ export const storageKeys = {
   chatSession: (agentId: string) => `mta-chat-session-${agentId}`,
   chatMessages: (agentId: string) => `mta-chat-messages-${agentId}`,
 };
+
+

@@ -53,6 +53,11 @@ export type ChatMessage = {
   content: string;
 };
 
+
+// Add this to your /lib/types.ts file
+
+
+
 export type ChatResponse = {
   agentId: string;
   sessionId: string;
