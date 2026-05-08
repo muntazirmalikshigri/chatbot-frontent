@@ -166,51 +166,52 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      setError("Email and password are required.");
-      return;
-    }
+const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
 
+  if (!email.trim() || !password.trim()) {
+    setError("Email and password are required.");
+    return;
+  }
+
+  try {
     setLoading(true);
     setError(null);
-    try {
-      const result = await api.login(email.trim(), password);
-      const accessToken = (result as any)?.accessToken;
-      const refreshToken = (result as any)?.refreshToken;
 
-      if (accessToken) {
-        // localStorage mein save karo (API calls ke liye)
-        localStorage.setItem("accessToken", accessToken);
+    console.log("LOGIN START");
 
-        // Cookie mein bhi save karo (middleware check ke liye)
-        const maxAge = 7 * 24 * 60 * 60; // 7 days
-        document.cookie = `accessToken=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`;
-      }
+    const result: any = await api.login(email.trim(), password);
 
-      if (refreshToken) {
-        localStorage.setItem("refreshToken", refreshToken);
-      }
+    console.log("LOGIN RESULT:", result);
 
-      // Companies fetch karo — null/empty dono handle
-      let list: any[] = [];
-      try {
-        const companies = await api.getCompanies();
-        list = Array.isArray(companies) ? companies : [];
-      } catch {
-        list = [];
-      }
-
-     // router.replace ki jagah yeh use karo
-window.location.href = list.length > 0 ? "/dashboard" : "/dashboard/company/create";
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
-    } finally {
-      setLoading(false);
+    // Extra safety
+    if (result?.accessToken) {
+      localStorage.setItem("accessToken", result.accessToken);
     }
-  };
 
+    if (result?.refreshToken) {
+      localStorage.setItem("refreshToken", result.refreshToken);
+    }
+
+    console.log(
+      "TOKEN AFTER LOGIN:",
+      localStorage.getItem("accessToken")
+    );
+
+    // Small delay
+    setTimeout(() => {
+      window.location.href = "/dashboard";
+    }, 300);
+  } catch (err) {
+    console.error(err);
+
+    setError(
+      err instanceof Error ? err.message : "Login failed"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <AuthShell>
       <Card
