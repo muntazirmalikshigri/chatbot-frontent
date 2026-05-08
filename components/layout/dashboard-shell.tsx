@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { Agent, Company } from "@/lib/types";
@@ -15,15 +14,20 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
 
   useEffect(() => {
-    let mounted = true;
+    // Token check — nahi hai toh login pe bhejo
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
 
+    let mounted = true;
     const load = async () => {
       try {
         const companyItems = await api.getCompanies();
         const agentGroups = await Promise.all(
           companyItems.map((company) => api.getAgentsByCompany(company._id).catch(() => []))
         );
-
         if (mounted) {
           setCompanies(companyItems);
           setAgents(agentGroups.flat());
@@ -35,9 +39,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
         }
       }
     };
-
     void load();
-
     return () => {
       mounted = false;
     };
