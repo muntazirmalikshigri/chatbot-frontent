@@ -26,18 +26,32 @@ export default function LoginPage() {
     setError(null);
     try {
       const result = await api.login(email.trim(), password);
-      // ✅ Yeh 2 lines add karo
-      localStorage.setItem('accessToken', (result as any).accessToken)
-      localStorage.setItem('refreshToken', (result as any).refreshToken)
-      
-      const companies = await api.getCompanies().catch(() => []);
-      router.replace(companies.length ? "/dashboard" : "/dashboard/company/create");
+
+      // Tokens save karo (api.ts bhi save karta hai — double safety)
+      if ((result as any)?.accessToken) {
+        localStorage.setItem("accessToken", (result as any).accessToken);
+      }
+      if ((result as any)?.refreshToken) {
+        localStorage.setItem("refreshToken", (result as any).refreshToken);
+      }
+
+      // Companies fetch karo — null/empty dono handle
+      let list: any[] = [];
+      try {
+        const companies = await api.getCompanies();
+        list = Array.isArray(companies) ? companies : [];
+      } catch {
+        list = [];
+      }
+
+      router.replace(list.length > 0 ? "/dashboard" : "/dashboard/company/create");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
     }
   };
+
   return (
     <AuthShell>
       <Card
