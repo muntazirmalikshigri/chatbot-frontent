@@ -193,18 +193,19 @@ export default function LoginPage() {
 
       console.log("LOGIN START");
 
-      const result: any = await api.login(email.trim(), password);
+      // const result: any = await api.login(email.trim(), password);
+const result: any = await api.login(email.trim(), password);
+console.log("RESULT:", result);
 
-      console.log("RESULT:", result);
+// ✅ YE SAHI TAREEKA HAI - data ke andar se token lo
+const accessToken = result?.data?.accessToken;
+console.log("TOKEN:", accessToken);
 
-      const accessToken = result?.data?.accessToken || result?.accessToken;
-
-      if (accessToken) {
-        localStorage.setItem("accessToken", accessToken);
-        console.log("TOKEN SAVED");
-        // ✅ Use replace instead of href
-        router.replace("/dashboard");
-      } else {
+if (accessToken) {
+    localStorage.setItem("accessToken", accessToken);
+    console.log("SAVED:", localStorage.getItem("accessToken"));
+    router.push("/dashboard");
+} else {
         setError("Login failed");
       }
     } catch (err) {
