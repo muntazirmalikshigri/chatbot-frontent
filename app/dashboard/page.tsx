@@ -251,8 +251,6 @@
 // }
 
 
-
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -290,34 +288,56 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ TOKEN CHECK - Redirect to login if no token
+  // ✅ FIXED: Token check with better error handling
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    console.log("🔍 Dashboard - Token check:", token ? "Token exists" : "No token");
+    const checkToken = async () => {
+      const token = localStorage.getItem("accessToken");
+      const sessionToken = sessionStorage.getItem("accessToken");
+      const finalToken = token || sessionToken;
+      
+      console.log("🔍 Dashboard - Token check:", finalToken ? "Token exists" : "No token");
+      
+      if (!finalToken) {
+        console.log("🚫 No token found, redirecting to login");
+        router.replace("/login");
+        return;
+      }
+      
+      // ✅ Verify token is valid by calling /me
+      try {
+        await api.me();
+        console.log("✅ Token is valid");
+      } catch (err) {
+        console.log("❌ Token invalid, clearing and redirecting");
+        localStorage.removeItem("accessToken");
+        sessionStorage.removeItem("accessToken");
+        router.replace("/login");
+      }
+    };
     
-    if (!token) {
-      console.log("🚫 No token found, redirecting to login");
-      router.replace("/login");
-    }
+    checkToken();
   }, [router]);
 
   useEffect(() => {
     let mounted = true;
 
     const load = async () => {
-      // ✅ Double check token before API calls
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        if (mounted) {
-          setError("Please login again");
-          setLoading(false);
-          router.replace("/login");
-        }
-        return;
-      }
-
       try {
-        console.log("📡 Fetching companies...");
+        // ✅ Try multiple token sources
+        let token = localStorage.getItem("accessToken");
+        if (!token) token = sessionStorage.getItem("accessToken");
+        
+        if (!token) {
+          if (mounted) {
+            setError("Please login again");
+            setLoading(false);
+            router.replace("/login");
+          }
+          return;
+        }
+
+        console.log("📡 Fetching companies with token:", token.substring(0, 20) + "...");
+        
         const companyItems = await api.getCompanies();
         console.log("✅ Companies fetched:", companyItems.length);
         
@@ -339,9 +359,10 @@ export default function DashboardPage() {
         console.error("❌ Dashboard error:", err);
         if (mounted) {
           // If unauthorized, redirect to login
-          if (err instanceof Error && err.message.includes("401")) {
+          const errorMessage = err instanceof Error ? err.message : "";
+          if (errorMessage.includes("401") || errorMessage.includes("unauthorized")) {
             localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
+            sessionStorage.removeItem("accessToken");
             router.replace("/login");
           } else {
             setError(err instanceof Error ? err.message : "Unable to load dashboard");
@@ -380,7 +401,7 @@ export default function DashboardPage() {
     router.push(`/dashboard/agents/${agentId}`);
   };
 
-  // ✅ Show loading while checking token
+  // Show loading while checking token
   if (loading && !error && items.length === 0) {
     return (
       <div className="space-y-8">
@@ -468,7 +489,7 @@ export default function DashboardPage() {
           <button
             onClick={() => {
               localStorage.removeItem("accessToken");
-              localStorage.removeItem("refreshToken");
+              sessionStorage.removeItem("accessToken");
               router.replace("/login");
             }}
             className="mt-3 text-sm font-medium"
