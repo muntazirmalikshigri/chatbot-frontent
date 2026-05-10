@@ -17,7 +17,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
     // Token check — nahi hai toh login pe bhejo
     const token = localStorage.getItem("accessToken");
     if (!token) {
-      window.location.replace("/login");
+      window.location.href = "/login";
       return;
     }
 
