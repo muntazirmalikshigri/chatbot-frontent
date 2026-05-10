@@ -163,7 +163,6 @@
 //   );
 // }
 
-
 "use client";
 
 import { useState } from "react";
@@ -191,25 +190,21 @@ export default function LoginPage() {
       setLoading(true);
       setError(null);
 
-      console.log("LOGIN START");
+      const result: any = await api.login(email.trim(), password);
 
-      // const result: any = await api.login(email.trim(), password);
-const result: any = await api.login(email.trim(), password);
-console.log("RESULT:", result);
+      // api.ts ka request() already payload.data return karta hai
+      // toh result = {success, user, accessToken, refreshToken}
+      const accessToken = result?.accessToken;
+      const refreshToken = result?.refreshToken;
 
-// ✅ YE SAHI TAREEKA HAI - data ke andar se token lo
-const accessToken = result?.data?.accessToken;
-console.log("TOKEN:", accessToken);
-
-if (accessToken) {
-    localStorage.setItem("accessToken", accessToken);
-    console.log("SAVED:", localStorage.getItem("accessToken"));
-    router.push("/dashboard");
-} else {
-        setError("Login failed");
+      if (accessToken) {
+        localStorage.setItem("accessToken", accessToken);
+        if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
+        router.push("/dashboard");
+      } else {
+        setError("Login failed — no token received");
       }
     } catch (err) {
-      console.error(err);
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
@@ -256,12 +251,7 @@ if (accessToken) {
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               placeholder="you@company.com"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleLogin();
-                }
-              }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleLogin(); } }}
             />
           </div>
           <div className="space-y-2">
@@ -273,23 +263,12 @@ if (accessToken) {
               onChange={(e) => setPassword(e.target.value)}
               type="password"
               placeholder="••••••••"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleLogin();
-                }
-              }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleLogin(); } }}
             />
           </div>
 
           {error && (
-            <div
-              className="p-3 rounded-xl border"
-              style={{
-                background: "rgba(244,63,94,0.08)",
-                border: "1px solid rgba(244,63,94,0.2)",
-              }}
-            >
+            <div className="p-3 rounded-xl border" style={{ background: "rgba(244,63,94,0.08)", border: "1px solid rgba(244,63,94,0.2)" }}>
               <p className="text-sm" style={{ color: "#fda4af" }}>{error}</p>
             </div>
           )}
