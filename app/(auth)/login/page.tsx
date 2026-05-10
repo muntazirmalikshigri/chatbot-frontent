@@ -164,7 +164,6 @@
 // }
 
 
-
 "use client";
 
 import { useState } from "react";
@@ -182,9 +181,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       setError("Email and password are required.");
       return;
@@ -194,50 +191,24 @@ export default function LoginPage() {
       setLoading(true);
       setError(null);
 
-      console.log("=================================");
       console.log("LOGIN START");
-      console.log("Email:", email);
-      console.log("=================================");
 
       const result: any = await api.login(email.trim(), password);
 
-      console.log("LOGIN RESPONSE:", JSON.stringify(result, null, 2));
+      console.log("RESULT:", result);
 
-      // ✅ Extract token from response
       const accessToken = result?.data?.accessToken || result?.accessToken;
-      const refreshToken = result?.data?.refreshToken || result?.refreshToken;
-
-      console.log("Access Token found:", accessToken ? "✅ YES" : "❌ NO");
-      console.log("Access Token value:", accessToken?.substring(0, 50) + "...");
 
       if (accessToken) {
-        // ✅ Save token using ALL methods
         localStorage.setItem("accessToken", accessToken);
-        sessionStorage.setItem("accessToken", accessToken);
-        
-        // ✅ Verify save
-        const saved = localStorage.getItem("accessToken");
-        console.log("Verification - Token saved successfully:", saved ? "✅ YES" : "❌ NO");
-        
-        if (refreshToken) {
-          localStorage.setItem("refreshToken", refreshToken);
-          sessionStorage.setItem("refreshToken", refreshToken);
-        }
-        
-        console.log("=================================");
-        console.log("✅ TOKEN SAVED, REDIRECTING TO DASHBOARD");
-        console.log("=================================");
-        
-        // ✅ Force redirect
-        window.location.href = "/dashboard";
-        
+        console.log("TOKEN SAVED");
+        // ✅ Use replace instead of href
+        router.replace("/dashboard");
       } else {
-        console.log("❌ No access token in response");
-        setError("Login failed - no token received");
+        setError("Login failed");
       }
-      
     } catch (err) {
-      console.error("Login error:", err);
+      console.error(err);
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
@@ -264,16 +235,17 @@ export default function LoginPage() {
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
             Don&apos;t have an account?{" "}
             <button
-              onClick={() => router.replace("/register")}
+              onClick={() => router.push("/register")}
               className="font-medium transition-colors"
               style={{ color: "var(--amber-400)" }}
+              type="button"
             >
               Create one
             </button>
           </p>
         </div>
 
-        <form onSubmit={submit} className="space-y-5">
+        <div className="space-y-5">
           <div className="space-y-2">
             <label className="text-xs uppercase tracking-wider font-semibold" style={{ color: "var(--text-secondary)" }}>
               Email
@@ -283,6 +255,12 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               placeholder="you@company.com"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleLogin();
+                }
+              }}
             />
           </div>
           <div className="space-y-2">
@@ -294,6 +272,12 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               type="password"
               placeholder="••••••••"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleLogin();
+                }
+              }}
             />
           </div>
 
@@ -311,8 +295,9 @@ export default function LoginPage() {
 
           <Button
             className="w-full"
-            type="submit"
+            onClick={handleLogin}
             disabled={loading}
+            type="button"
             style={{
               background: "linear-gradient(135deg, var(--amber-500), var(--orange-500))",
               color: "var(--surface-0)",
@@ -324,7 +309,7 @@ export default function LoginPage() {
           >
             {loading ? "Signing in..." : "Login"}
           </Button>
-        </form>
+        </div>
       </Card>
     </AuthShell>
   );
