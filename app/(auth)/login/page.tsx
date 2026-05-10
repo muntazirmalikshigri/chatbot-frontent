@@ -34,43 +34,37 @@ const submit = async (event: React.FormEvent<HTMLFormElement>) => {
 
     console.log("LOGIN RESULT:", result);
 
-    // Extra safety
-    // if (result?.accessToken) {
-    //   localStorage.setItem("accessToken", result.accessToken);
-    // }
+    // ✅ FIXED: Token nikalne ka sahi tarika
+    const accessToken = result?.data?.accessToken || result?.accessToken;
+    const refreshToken = result?.data?.refreshToken || result?.refreshToken;
 
-    // if (result?.refreshToken) {
-    //   localStorage.setItem("refreshToken", result.refreshToken);
-    // }
-    // Token nikal lo (data ke andar se)
-    //check
+    console.log("Access Token found:", accessToken ? "YES" : "NO");
+    console.log("Refresh Token found:", refreshToken ? "YES" : "NO");
 
-const accessToken = result?.data?.accessToken || result?.accessToken;
-const refreshToken = result?.data?.refreshToken || result?.refreshToken;
+    if (accessToken) {
+      localStorage.setItem("accessToken", accessToken);
+      console.log("✅ Token saved to localStorage");
+    } else {
+      console.log("❌ No access token in response");
+      setError("Login failed - no token received");
+      return;
+    }
 
-if (accessToken) {
-    localStorage.setItem("accessToken", accessToken);
-}
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+    }
 
-if (refreshToken) {
-    localStorage.setItem("refreshToken", refreshToken);
-}
+    // ✅ Verify token saved
+    const savedToken = localStorage.getItem("accessToken");
+    console.log("Verified token in localStorage:", savedToken ? "YES" : "NO");
 
-    console.log(
-      "TOKEN AFTER LOGIN:",
-      localStorage.getItem("accessToken")
-    );
-
-    // Small delay
-    setTimeout(() => {
-      window.location.href = "/dashboard";
-    }, 300);
+    // ✅ Redirect
+    console.log("Redirecting to dashboard...");
+    router.push("/dashboard");
+    
   } catch (err) {
-    console.error(err);
-
-    setError(
-      err instanceof Error ? err.message : "Login failed"
-    );
+    console.error("Login error:", err);
+    setError(err instanceof Error ? err.message : "Login failed");
   } finally {
     setLoading(false);
   }
