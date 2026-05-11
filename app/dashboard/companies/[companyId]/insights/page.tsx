@@ -62,7 +62,7 @@ export default function InsightsDashboard() {
     let mounted = true;
     const load = async () => {
       try {
-        const data = await api.getInsights(companyId);
+        const data = (await api.getInsights(companyId)) as InsightsData;
         if (mounted) setInsights(data);
       } catch (err) {
         if (mounted) setError(err instanceof Error ? err.message : "Unable to load insights");
@@ -113,7 +113,16 @@ export default function InsightsDashboard() {
             ← Back
           </button>
           <button
-            onClick={() => { setLoading(true); setInsights(null); setError(null); api.getInsights(companyId).then(setInsights).catch(e => setError(e.message)).finally(() => setLoading(false)); }}
+            onClick={() => {
+              setLoading(true);
+              setInsights(null);
+              setError(null);
+              api
+                .getInsights(companyId)
+                .then((data) => setInsights(data as InsightsData))
+                .catch((e) => setError(e instanceof Error ? e.message : "Unable to load insights"))
+                .finally(() => setLoading(false));
+            }}
             style={{ padding: "9px 18px", borderRadius: "10px", background: "linear-gradient(135deg, var(--amber-500), var(--orange-500))", border: "none", cursor: "pointer", fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: "0.85rem", color: "#09090b" }}
           >
             ↻ Refresh
@@ -192,7 +201,7 @@ export default function InsightsDashboard() {
               <h2 style={{ fontFamily: "Syne, sans-serif", fontWeight: 700, fontSize: "1rem", color: "var(--text-primary)", marginBottom: "4px" }}>
                 ❓ Knowledge Gaps
               </h2>
-              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1rem" }}>Questions your agent couldn't answer</p>
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1rem" }}>Questions your agent could not answer</p>
               {insights.missingKnowledge.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "1.5rem", background: "rgba(74,222,128,0.05)", border: "1px solid rgba(74,222,128,0.15)", borderRadius: "12px" }}>
                   <p style={{ fontSize: "1.5rem", marginBottom: "6px" }}>🎉</p>
