@@ -6,12 +6,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompanyCardsGrid } from "./CompanyCardsGrid";
 import type { Agent, Company } from "@/lib/types";
-// export const dynamic = 'force-dynamic'
-// export const revalidate = 0
 
 type CompanyWithAgent = {
   company: Company;
@@ -39,34 +36,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ FIXED: Token check with better error handling
   useEffect(() => {
-    const checkToken = async () => {
-      const token = localStorage.getItem("accessToken");
-      const sessionToken = sessionStorage.getItem("accessToken");
-      const finalToken = token || sessionToken;
-      
-      console.log("🔍 Dashboard - Token check:", finalToken ? "Token exists" : "No token");
-      
-      if (!finalToken) {
-        console.log("🚫 No token found, redirecting to login");
-        router.replace("/login");
-        return;
-      }
-      
-      // ✅ Verify token is valid by calling /me
-      try {
-        await api.me();
-        console.log("✅ Token is valid");
-      } catch (err) {
-        console.log("❌ Token invalid, clearing and redirecting");
-        localStorage.removeItem("accessToken");
-        sessionStorage.removeItem("accessToken");
-        router.replace("/login");
-      }
-    };
-    
-    checkToken();
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      router.replace("/login");
+    }
   }, [router]);
 
   useEffect(() => {
@@ -74,10 +48,8 @@ export default function DashboardPage() {
 
     const load = async () => {
       try {
-        // ✅ Try multiple token sources
-        let token = localStorage.getItem("accessToken");
-        if (!token) token = sessionStorage.getItem("accessToken");
-        
+        const token = localStorage.getItem("accessToken");
+
         if (!token) {
           if (mounted) {
             setError("Please login again");
@@ -87,11 +59,8 @@ export default function DashboardPage() {
           return;
         }
 
-        console.log("📡 Fetching companies with token:", token.substring(0, 20) + "...");
-        
         const companyItems = await api.getCompanies();
-        console.log("✅ Companies fetched:", companyItems.length);
-        
+
         const agentGroups = await Promise.all(
           companyItems.map((company) => api.getAgentsByCompany(company._id).catch(() => []))
         );
@@ -107,17 +76,8 @@ export default function DashboardPage() {
           setAgentCount(totalAgents);
         }
       } catch (err) {
-        console.error("❌ Dashboard error:", err);
         if (mounted) {
-          // If unauthorized, redirect to login
-          const errorMessage = err instanceof Error ? err.message : "";
-          if (errorMessage.includes("401") || errorMessage.includes("unauthorized")) {
-            localStorage.removeItem("accessToken");
-            sessionStorage.removeItem("accessToken");
-            router.replace("/login");
-          } else {
-            setError(err instanceof Error ? err.message : "Unable to load dashboard");
-          }
+          setError(err instanceof Error ? err.message : "Unable to load dashboard");
         }
       } finally {
         if (mounted) {
@@ -240,7 +200,6 @@ export default function DashboardPage() {
           <button
             onClick={() => {
               localStorage.removeItem("accessToken");
-              sessionStorage.removeItem("accessToken");
               router.replace("/login");
             }}
             className="mt-3 text-sm font-medium"
