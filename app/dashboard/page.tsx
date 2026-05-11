@@ -261,6 +261,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompanyCardsGrid } from "./CompanyCardsGrid";
 import type { Agent, Company } from "@/lib/types";
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 type CompanyWithAgent = {
   company: Company;
