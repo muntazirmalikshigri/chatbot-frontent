@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { AuthShell } from "@/components/layout/auth-shell";
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+
 
 export default function RegisterPage() {
   const router = useRouter();

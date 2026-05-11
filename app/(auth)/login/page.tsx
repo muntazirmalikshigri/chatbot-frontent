@@ -8,8 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AuthShell } from "@/components/layout/auth-shell";
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+
 
 export default function LoginPage() {
   const router = useRouter();
