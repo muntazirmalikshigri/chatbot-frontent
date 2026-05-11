@@ -26,8 +26,9 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError(null);
-
+      console.log("BEFORE")
       const result: any = await api.login(email.trim(), password);
+      console.log("AFTER")
 
       // api.ts ka request() already payload.data return karta hai
       // toh result = {success, user, accessToken, refreshToken}
@@ -42,6 +43,7 @@ export default function LoginPage() {
         setError("Login failed — no token received");
       }
     } catch (err) {
+      console.log("ERORORO")
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
