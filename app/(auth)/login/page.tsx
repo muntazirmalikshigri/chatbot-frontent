@@ -42,8 +42,8 @@ export default function LoginPage() {
       if (accessToken) {
         localStorage.setItem("accessToken", accessToken);
         if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-        router.replace("/dashboard/companies");
-        window.location.href = "/dashboard/companies";
+        router.replace("/dashboard");
+        window.location.href = "/dashboard";
         return;
       } else {
         setError("Login failed — no token received");
