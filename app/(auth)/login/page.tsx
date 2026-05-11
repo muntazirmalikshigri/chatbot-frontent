@@ -26,24 +26,27 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError(null);
-      console.log("BEFORE")
-      const result: any = await api.login(email.trim(), password);
-      console.log("AFTER")
+      const result = await api.login(email.trim(), password);
 
       // api.ts ka request() already payload.data return karta hai
       // toh result = {success, user, accessToken, refreshToken}
-      const accessToken = result?.accessToken;
-      const refreshToken = result?.refreshToken;
+      const payload = result as {
+        data?: { accessToken?: string; refreshToken?: string };
+        accessToken?: string;
+        refreshToken?: string;
+      };
+      const authData = payload.data ?? payload;
+      const accessToken = authData?.accessToken;
+      const refreshToken = authData?.refreshToken;
 
       if (accessToken) {
         localStorage.setItem("accessToken", accessToken);
         if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-        router.push("/dashboard");
+        window.location.replace("/dashboard");
       } else {
         setError("Login failed — no token received");
       }
     } catch (err) {
-      console.log("ERORORO")
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);

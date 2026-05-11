@@ -244,12 +244,13 @@ type RequestOptions = RequestInit & {
 };
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: "include",
     cache: "no-store",
     ...options,
     headers: {
       ...(options.headers ?? {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.body && !("Content-Type" in (options.headers ?? {}))
         ? { "Content-Type": "application/json" }
         : {}),
@@ -269,7 +270,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 export const api = {
   login: (email: string, password: string) =>
-    request<User>("/login", {
+    request<{ accessToken: string; refreshToken: string; user: User }>("/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
@@ -293,7 +294,7 @@ export const api = {
   getCompany: (companyId: string) => request<Company>(`/companies/${companyId}`),
 
   getInsights: (companyId: string) =>
-    request<any>(`/companies/${companyId}/insights`),
+    request<unknown>(`/companies/${companyId}/insights`),
 
   createCompany: (payload: { name: string; description?: string }) =>
     request<CompanyCreationResult>("/companies", {
@@ -340,15 +341,18 @@ export const api = {
     }),
 
   uploadKnowledgePdf: async (agentId: string, file: File, sourceName?: string) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
     const response = await fetch(
       `${API_BASE_URL}/agents/${agentId}/knowledge/pdf${
         sourceName ? `?sourceName=${encodeURIComponent(sourceName)}` : ""
       }`,
       {
         method: "POST",
-        credentials: "include",
         body: file,
-        headers: { "Content-Type": file.type || "application/pdf" },
+        headers: {
+          "Content-Type": file.type || "application/pdf",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       }
     );
     const payload = (await response.json().catch(() => null)) as
@@ -410,6 +414,11 @@ export const api = {
       await request<{ success: boolean }>("/logout", { method: "PUT" });
     } catch {
       // Ignore errors — logout should proceed even if backend call fails
+    } finally {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+      }
     }
   },
 };
